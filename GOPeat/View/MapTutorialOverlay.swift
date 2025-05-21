@@ -50,7 +50,7 @@ struct MapTutorialOverlay: View {
                         .foregroundColor(.white)
                         .frame(width: 200)
                         .padding()
-                        .background(Color.blue)
+                        .background(Color.sample)
                         .cornerRadius(12)
                 }
                 .padding(.top, 8)

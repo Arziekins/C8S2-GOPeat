@@ -24,12 +24,31 @@ class Food: Identifiable {
 }
 enum FoodCategory: String, CaseIterable, Codable {
     case spicy = "Spicy"
-    case nonSpicy = "Non-Spicy"
     case soup = "Soup"
-    case greasy = "Greasy"
-    case nonGreasy = "Non-Greasy"
-    case roast = "Roast"
+    case roasted = "Roasted"
     case savory = "Savory"
     case sweet = "Sweet"
-    case nonSweet = "Non-Sweet"
+    case meat = "Meat"
+    case vegetables = "Vegetables"
+    case rice = "Rice"
+    case seafood = "Seafood"
+    case fried = "Fried"
+    case chicken = "Chicken"
+    case eggs = "Eggs"
+    case nuts = "Nuts"
+    case porkAndLard = "Pork and Lard"
+    case fish = "Fish"
+    case soy = "Soy"
+    case mushroom = "Mushroom"
+    case steamed = "Steamed"
+    case gluten = "Gluten"
+    case sour = "Sour"
+    case snacks = "Snacks"
+    case unknown = "Unknown"
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        self = FoodCategory(rawValue: value) ?? .unknown
+    }
 }

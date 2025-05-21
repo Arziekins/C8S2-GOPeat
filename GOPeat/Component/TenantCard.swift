@@ -10,7 +10,6 @@ import SwiftUI
 struct TenantCard: View {
     let tenant: Tenant
     @State var showTenantDetail = false
-    @Binding var selectedCategories: [String]
     private func infoRow(label: String, value: String) -> some View {
         HStack(alignment: .top) {
             Text("\(label):")
@@ -24,6 +23,14 @@ struct TenantCard: View {
     var body: some View {
         Button(action: {
             showTenantDetail = true
+            
+            // Create user activity for this tenant when opened
+            let activity = NSUserActivity(activityType: "com.gopeat.viewTenant")
+            activity.title = "Viewing \(tenant.name)"
+            activity.userInfo = ["tenantID": tenant.id.uuidString]
+            activity.isEligibleForSearch = true
+            activity.isEligibleForPrediction = true
+            activity.becomeCurrent()
         }) {
             HStack {
                 Image(tenant.image)
@@ -31,17 +38,21 @@ struct TenantCard: View {
                     .frame(maxWidth: 80, maxHeight: 80)
                     .scaledToFill()
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-                
+
                 VStack(alignment: .leading) {
                     Text(tenant.name)
                         .font(.subheadline)
                         .bold()
-                        .padding(.bottom,5)
+                        .padding(.bottom, 5)
                     infoRow(label: "Operational Hours", value: tenant.operationalHours)
                     infoRow(label: "Contact Person", value: tenant.contactPerson)
-                    infoRow(label: "Pre-order Information", value: "\((tenant.preorderInformation ?? false) ? "Available" : "Not available")")
+                    infoRow(
+                        label: "Pre-order Information",
+                        value:
+                            "\((tenant.preorderInformation ?? false) ? "Available" : "Not available")"
+                    )
                 }
-                
+
                 Spacer()
             }
             .padding(10)
@@ -52,8 +63,7 @@ struct TenantCard: View {
         .fullScreenCover(isPresented: $showTenantDetail) {
             showTenantDetail = false
         } content: {
-            TenantView(tenant: tenant, foods: tenant.foods, selectedCategories: $selectedCategories)
+            TenantView(tenant: tenant, foods: tenant.foods, selectedCategories: .constant([]))
         }
-
     }
 }

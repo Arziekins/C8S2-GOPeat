@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SearchBar: View {
     @Binding var searchTerm: String
-    @FocusState var isTextFieldFocused: Bool
+    @FocusState.Binding var isTextFieldFocused: Bool
     var onCancel: () -> Void
     var onSearch: () -> Void
     var body: some View {
@@ -21,7 +21,6 @@ struct SearchBar: View {
                 TextField("What would you eat today?", text: $searchTerm)
                     .onSubmit {
                         onSearch()
-                        isTextFieldFocused = true
                     }
                     .focused($isTextFieldFocused)
                     .textFieldStyle(.plain)
@@ -41,6 +40,7 @@ struct SearchBar: View {
                     onCancel()
                 }) {
                     Text("Cancel")
+                        .foregroundColor(Color(.sample))
                 }
             }
         }

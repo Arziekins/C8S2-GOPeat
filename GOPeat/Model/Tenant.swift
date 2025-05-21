@@ -10,7 +10,7 @@ import SwiftData
 import Foundation
 
 @Model
-class Tenant: Identifiable {
+class Tenant: Identifiable, Hashable {
     var id: UUID = UUID()
     var name: String
     var image: String
@@ -30,5 +30,14 @@ class Tenant: Identifiable {
         self.isHalal = isHalal
         self.canteen = canteen
         self.priceRange = priceRange
+    }
+    
+    // Hashable conformance
+    static func == (lhs: Tenant, rhs: Tenant) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }

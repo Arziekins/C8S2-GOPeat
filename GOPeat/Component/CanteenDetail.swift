@@ -5,62 +5,53 @@
 //  Created by jonathan calvin sutrisna on 07/04/25.
 //
 
-import SwiftUI
 import MapKit
 import SwiftData
+import SwiftUI
 
 struct CanteenDetail: View {
     let canteen: Canteen
     var dismissAction: () -> Void
-    @StateObject var viewModel: TenantSearchViewModel
-    
-    init(canteen: Canteen, dismissAction: @escaping () -> Void) {
-        self.canteen = canteen
-        self.dismissAction = dismissAction
-        self._viewModel = StateObject(wrappedValue: TenantSearchViewModel(tenants: canteen.tenants))
+    private let allFoodsFromDataStore: [Food]
+
+    private var visibleTenantsInCanteen: [Tenant] {
+        canteen.tenants.filter { tenant in
+            let foodsForThisTenant = allFoodsFromDataStore.filter { $0.tenant?.id == tenant.id }
+            return !PreferenceManager.shared.isTenantHidden(tenant, allFoodsForTenant: foodsForThisTenant)
+        }
     }
 
-//    private func showTenant(tenants: [Tenant]) -> some View {
-//        VStack(alignment: .leading) {
-//            Text("Tenants")
-//                .font(.headline)
-//                .fontWeight(.bold)
-//                .padding(0)
-//            Divider()
-//            if !tenants.isEmpty {
-//                ForEach(tenants) {tenant in
-//                    TenantCard(tenant: tenant, selectedCategories: $viewModel.selectedCategories)
-//                }
-//            } else {
-//                Text("Coming Soon")
-//                    .font(.subheadline)
-//                    .frame(maxWidth: .infinity, alignment: .center)
-//            }
-//        }
-//    }
-    
-    private func showTenant(tenants: [Tenant]) -> some View {
+    init(
+        canteen: Canteen,
+        allFoods: [Food],
+        dismissAction: @escaping () -> Void
+    ) {
+        self.canteen = canteen
+        self.allFoodsFromDataStore = allFoods
+        self.dismissAction = dismissAction
+    }
+
+    private func showVisibleTenants() -> some View {
         VStack(alignment: .leading) {
             Text("Tenants")
                 .font(.headline)
                 .fontWeight(.bold)
                 .padding(0)
             Divider()
-            if !tenants.isEmpty {
-                ForEach(tenants) {tenant in
-                    TenantCard(tenant: tenant, selectedCategories: $viewModel.selectedCategories)
+            if !visibleTenantsInCanteen.isEmpty {
+                ForEach(visibleTenantsInCanteen) { tenant in
+                    TenantCard(tenant: tenant)
                 }
             } else {
-                Text("Not Found")
+                Text("No tenants currently available based on your preferences or offerings.")
                     .font(.subheadline)
-                    .bold()
+                    .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 10)
             }
         }
     }
 
-    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -70,33 +61,33 @@ struct CanteenDetail: View {
                         Image(systemName: "fork.knife.circle.fill")
                             .foregroundStyle(.red)
                             .font(.system(size: 36))
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text(canteen.name)
                                 .font(.title2)
                                 .bold()
-                            
+
                             Text(canteen.desc)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                     }
                     .padding(.bottom, 8)
-                    
+
                     Divider()
-                    
+
                     // Hours Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("OPERATING HOURS")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         Text(canteen.operationalTime)
                             .font(.subheadline)
                     }
-                    
+
                     Divider()
-                    
+
                     // Amenities Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("AMENITIES")
@@ -113,26 +104,9 @@ struct CanteenDetail: View {
                             }
                         }
                     }
-                    
+
                     Divider()
-                    //Filter Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("FILTER")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Filter(categories: viewModel.categories, selectedCategories: $viewModel.selectedCategories, maxPrice: $viewModel.maxPrice, isOpenNow: $viewModel.isOpenNow)
-                            .onChange(of: viewModel.selectedCategories) { _, _ in
-                                viewModel.updateFilteredTenant()
-                            }
-                            .onChange(of: viewModel.maxPrice) { _, _ in
-                                viewModel.updateFilteredTenant()
-                            }
-                            .onChange(of: viewModel.isOpenNow) { _, _ in
-                                viewModel.updateFilteredTenant()
-                            }
-                    }
-                    
+
                     // Tenants Section
                     if canteen.tenants.isEmpty {
                         VStack(alignment: .leading) {
@@ -148,7 +122,7 @@ struct CanteenDetail: View {
                                 .padding()
                         }
                     } else {
-                        showTenant(tenants: viewModel.filteredTenants)
+                        showVisibleTenants()
                     }
                 }
                 .padding()
@@ -162,7 +136,7 @@ struct CanteenDetail: View {
             }
         }
     }
-    
+
     private func amenityIcon(for amenity: String) -> String {
         switch amenity {
         case "Free WiFi": return "wifi"
@@ -176,7 +150,6 @@ struct CanteenDetail: View {
         case "Live Music": return "music.mic"
         case "Event Space": return "calendar"
         case "Premium Dining": return "star"
-        case "Prayer Room": return "mosque" // Added prayer room icon
         default: return "mappin"
         }
     }

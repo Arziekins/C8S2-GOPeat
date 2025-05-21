@@ -10,6 +10,19 @@
 		AB0CA2322D955944004DA7F2 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = AB0CA2302D955941004DA7F2 /* .gitignore */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		6B6E706E2DDAEC690008A4FC /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		AB0CA2302D955941004DA7F2 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		AB38CBC52D7D6B5C00015DFD /* GOPeat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GOPeat.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -61,6 +74,7 @@
 				AB38CBC12D7D6B5C00015DFD /* Sources */,
 				AB38CBC22D7D6B5C00015DFD /* Frameworks */,
 				AB38CBC32D7D6B5C00015DFD /* Resources */,
+				6B6E706E2DDAEC690008A4FC /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
@@ -83,7 +97,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
+				LastSwiftUpdateCheck = 1630;
 				LastUpgradeCheck = 1630;
 				TargetAttributes = {
 					AB38CBC42D7D6B5C00015DFD = {
@@ -261,7 +275,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"GOPeat/Preview Content\"";
-				DEVELOPMENT_TEAM = KPG55543AH;
+				DEVELOPMENT_TEAM = ZN9VK963UT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app need your permission to show your location on the map.";
@@ -275,7 +289,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = name.jonathancalvinsutrisna.GOPeat;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aryaakmal.GOPeat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -291,7 +305,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"GOPeat/Preview Content\"";
-				DEVELOPMENT_TEAM = KPG55543AH;
+				DEVELOPMENT_TEAM = ZN9VK963UT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app need your permission to show your location on the map.";
@@ -305,7 +319,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = name.jonathancalvinsutrisna.GOPeat;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aryaakmal.GOPeat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

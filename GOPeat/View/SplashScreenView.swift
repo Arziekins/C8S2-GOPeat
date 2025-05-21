@@ -11,10 +11,18 @@ struct SplashScreenView: View {
     @State private var isActive = false
     @State private var size = 0.8
     @State private var opacity = 0.5
+    @Binding var deepLinkTenantID: UUID?
+    
+    init(deepLinkTenantID: Binding<UUID?> = .constant(nil)) {
+        self._deepLinkTenantID = deepLinkTenantID
+    }
     
     var body: some View {
         if isActive {
-            ContentView()
+            ContentView(
+                showOnboarding: !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding"),
+                deepLinkTenantID: deepLinkTenantID
+            )
         } else {
             VStack {
                 Image("AppImage")

@@ -1,0 +1,36 @@
+{
+    "editor.quickSuggestions": {
+        "comments": "off",
+        "strings": "off",
+        "other": "off"
+    },
+    "triggerTaskOnSave.tasks": {
+        "sweetpad: build": [
+            "**/*.swift"
+        ]
+    },
+    "triggerTaskOnSave.on": true,
+    "triggerTaskOnSave.showNotifications": false,
+    "triggerTaskOnSave.restart": true,
+    "triggerTaskOnSave.delay": 1000,
+    "triggerTaskOnSave.resultIndicatorResetTimeout": 5,
+    "workbench.colorCustomizations": {},
+    "sweetpad.format.args": [
+        "--in-place",
+        "--configuration",
+        ".vscode/.swift-format",
+        "${file}"
+    ],
+    "[swift]": {
+        "editor.defaultFormatter": "sweetpad.sweetpad",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit"
+        }
+    },
+    "swift.path": "/usr/bin/swift",
+    "swift.buildPath": "${workspaceFolder}/.build",
+    "swift.sdkPath": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+    "swift.target": "x86_64-apple-macosx10.15",
+    "swift.enableSourceKit": true
+}

@@ -18,12 +18,8 @@ class FoodFilterViewModel: ObservableObject{
     let categories: [String] = FoodCategory.allCases.map{ $0.rawValue }
     
     init(foods: [Food]) {
-        let tenant = foods.first?.tenant
-        var tempfoods = foods
-        let dummy = Food(name: "Dumy", description: "Dumy", categories: [.nonSpicy, .nonGreasy, .nonSweet, .spicy, .greasy, .sweet, .soup, .roast, .savory], tenant: tenant)
-        tempfoods.insert(dummy, at: 0)
-        self.foods = tempfoods
-        self.filteredFoods = tempfoods
+        self.foods = foods
+        self.filteredFoods = foods
     }
     
     func updateFilteredFood(selectedCategories: [String]) {
@@ -141,15 +137,9 @@ struct TenantView: View {
                         // Tenant's Side-scrolling images
                         imageSlider(image: sampleImages)
                         
-                        // Filter Component
-                        Filter(categories: viewModel.categories, selectedCategories: $selectedCategories, maxPrice: $maxPrice, isOpenNow: $isOpenNow)
-                            .onChange(of: selectedCategories) { _, _ in
-                                viewModel.updateFilteredFood(selectedCategories: selectedCategories)
-                            }.padding(.horizontal, 20)
-                        
                         // List of Food
                         VStack(spacing: 10) {
-                            if viewModel.filteredFoods.count == 1 && viewModel.filteredFoods.first?.name == "Dumy" {
+                            if viewModel.filteredFoods.isEmpty {
                                 Text("Not Found")
                                     .font(.subheadline)
                                     .bold()
@@ -157,7 +147,7 @@ struct TenantView: View {
                                     .padding(.top, 10)
                                 
                             } else {
-                                ForEach(viewModel.filteredFoods.filter { $0.name != "Dumy" }) { food in
+                                ForEach(viewModel.filteredFoods) { food in
                                     FoodCard(food: food)
                                 }
                             }
