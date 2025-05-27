@@ -69,14 +69,14 @@ struct PreferencesView: View {
                 // Save the raw selections (presets and/or individual categories)
                 PreferenceManager.shared.saveSelectedPreferences(preferences: selectedPreferences)
                 
-                // Request location permission when user finishes preferences
+                // Request location permission ketika user selesai memilih preferensi
                 locationManager.requestLocationPermission()
                 locationManager.startUpdatingLocation()
                 
                 // Mark onboarding as completed
                 UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                 
-                showOnboarding = false 
+                showOnboarding = false // Ini akan menutup PreferencesView
             }) {
                 Text("I'm ready to eat!")
                     .font(.headline)
@@ -255,5 +255,6 @@ struct ChipView: View {
 }
 
 #Preview {
-    
+    PreferencesView(showOnboarding: .constant(true))
+        .environmentObject(LocationManager())
 }

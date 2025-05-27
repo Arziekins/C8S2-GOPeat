@@ -21,7 +21,8 @@ struct SplashScreenView: View {
         if isActive {
             ContentView(
                 showOnboarding: !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding"),
-                deepLinkTenantID: deepLinkTenantID
+                deepLinkTenantID: deepLinkTenantID,
+                onDeepLinkTenantViewDismiss: nil
             )
         } else {
             VStack {

@@ -81,18 +81,19 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 struct MapView: View {
     @State private var camera: MapCameraPosition = .automatic
     @State private var selectedCanteen: Canteen?
-    @State private var showDetail = false
-    @State private var showSearchModal = false
+    @Binding var showDetail: Bool
+    @Binding var showSearchModal: Bool
+    @Binding var showTutorial: Bool
+    @Binding var showEasterEgg: Bool
     @State private var mapOffset: CGFloat = 0
     @EnvironmentObject private var locationManager: LocationManager
     @StateObject private var tenantSearchViewModel: TenantSearchViewModel
     @StateObject private var easterEggViewModel: EasterEggViewModel
-    @State private var showTutorial: Bool
     @State private var selectedTenantFromDeepLink: Tenant?
     @State private var showTenantView = false
+    @State private var modalSearchFraction: CGFloat = 1.0
     
     // These are for MapView's direct display needs (e.g., annotations, initial region)
-    // These could be filtered tenants if ContentView passes visibleTenants
     let displayTenants: [Tenant] 
     let displayCanteens: [Canteen]
     
@@ -104,14 +105,26 @@ struct MapView: View {
     private var modelContext: ModelContext
 
     // Updated Initializer
-    init(displayTenants: [Tenant], displayCanteens: [Canteen], allTenantsForSearch: [Tenant], allFoodsForSearch: [Food], showTutorial: Bool = true, deepLinkTenantID: UUID? = nil, modelContext: ModelContext) {
+    init(displayTenants: [Tenant], 
+         displayCanteens: [Canteen], 
+         allTenantsForSearch: [Tenant], 
+         allFoodsForSearch: [Food], 
+         showTutorial: Binding<Bool>,
+         deepLinkTenantID: UUID? = nil, 
+         modelContext: ModelContext,
+         showSearchModal: Binding<Bool>,
+         showDetail: Binding<Bool>,
+         showEasterEgg: Binding<Bool>) {
         self.displayTenants = displayTenants
         self.displayCanteens = displayCanteens
         self.allTenantsForSearch = allTenantsForSearch
         self.allFoodsForSearch = allFoodsForSearch
         self.deepLinkTenantID = deepLinkTenantID
-        self._showTutorial = State(initialValue: showTutorial)
+        self._showTutorial = showTutorial
         self.modelContext = modelContext
+        self._showSearchModal = showSearchModal
+        self._showDetail = showDetail
+        self._showEasterEgg = showEasterEgg
         
         self._tenantSearchViewModel = StateObject(
             wrappedValue: TenantSearchViewModel(modelContext: modelContext)
@@ -139,10 +152,12 @@ struct MapView: View {
         tenantSearchViewModel.onClose()
 
         // 2. After a short delay, update modal states and zoom
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { // Adjusted delay slightly
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             self.zoomToLocation(coordinate)
             self.showDetail = true
             self.showSearchModal = false
+            self.showEasterEgg = false
+            self.showTutorial = false
         }
     }
 
@@ -154,12 +169,14 @@ struct MapView: View {
         // 1. Signal ModalSearch to collapse and resign focus
         tenantSearchViewModel.onClose()
 
-        // 2. After a short delay, update modal state and zoom (and potentially navigate)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { // Adjusted delay slightly
+        // 2. After a short delay, update modal state and zoom
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             self.zoomToLocation(coordinate)
-            // self.showTenantView = true // Example for future navigation
             self.showSearchModal = false
-            // TO DO: Navigate to Tenant Page (if self.showTenantView is used, ModalSearch is already dismissed)
+            self.showDetail = false
+            self.showEasterEgg = false
+            self.showTutorial = false
+            self.showTenantView = true
         }
     }
 
@@ -254,9 +271,8 @@ struct MapView: View {
                     withAnimation {
                         showTutorial = false
                         UserDefaults.standard.set(true, forKey: "hasSeenMapTutorial")
-                        if deepLinkTenantID == nil {
-                            // self.showSearchModal = true // Keep this line or ensure ModalSearch appears as intended
-                        }
+                        showSearchModal = true
+                        modalSearchFraction = 0.1
                     }
                 }
             }
@@ -298,47 +314,63 @@ struct MapView: View {
             .environmentObject(locationManager)
             .environmentObject(easterEggViewModel)
         }
-        .fullScreenCover(isPresented: $easterEggViewModel.presentFullscreenFoodDetail) {
+        .fullScreenCover(
+            isPresented: $easterEggViewModel.presentFullscreenFoodDetail,
+            onDismiss: {
+                withAnimation {
+                    showSearchModal = true
+                    modalSearchFraction = 0.1
+                }
+            }
+        ) {
             if let details = easterEggViewModel.selectedFoodDetails {
                 EasterEggPopupView(
                     isPresented: $easterEggViewModel.presentFullscreenFoodDetail,
                     foodDetails: details
                 )
             } else {
-                // Fallback: Should ideally not happen if ViewModel handles "no food" case by providing default details
                 EmptyView() 
+            }
+        }
+        .fullScreenCover(isPresented: $showTenantView) {
+            if let tenant = selectedTenantFromDeepLink {
+                TenantView(tenant: tenant, foods: tenant.foods, selectedCategories: .constant([]))
+                    .onDisappear {
+                        showTenantView = false
+                        selectedTenantFromDeepLink = nil
+                    }
             }
         }
         .onAppear {
             // Request location when map appears
             locationManager.requestLocationPermission()
+            
             // Logic to handle deep link, find tenant and show details
             if let tenantID = deepLinkTenantID,
                let tenant = allTenantsForSearch.first(where: { $0.id == tenantID }) {
                 selectedTenantFromDeepLink = tenant
-                // Decide if you want to directly show TenantView or just select on map
-                // For now, let's assume it means selecting it on the map and showing its canteen detail.
+                
+                // Close all modals first
+                showSearchModal = false
+                showDetail = false
+                showEasterEgg = false
+                showTutorial = false
+                
+                // Then show tenant view after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 if let canteen = tenant.canteen {
                     handleCanteenSelection(canteen) 
-                    // If you want to open TenantView directly:
-                    // self.showTenantView = true 
+                    }
+                    showTenantView = true
                 }
-            } else if !self.showTutorial { // If no deep link and tutorial isn't showing
-                // Only set showSearchModal to true if it's not already being shown due to CanteenDetail dismiss
-                // and if no deep link was processed that would hide it.
-                // This ensures ModalSearch appears by default when MapView is ready and no other modal flow is active.
-                DispatchQueue.main.async { // Ensure this runs after the current view update cycle
+            } else if !self.showTutorial {
+                DispatchQueue.main.async {
                      self.showSearchModal = true
                 }
             }
-            
-            // Commenting out the part that was potentially making it true by default before onAppear fully processed:
-            // The initial value of showSearchModal is now false, controlled by onAppear.
         }
         .onChange(of: showSearchModal) { oldValue, newValue in
             print("MapView: showSearchModal changed from \(oldValue) to \(newValue)")
-            // For more detailed debugging, you can add:
-            // print(Thread.callStackSymbols)
         }
     }
 }

@@ -16,15 +16,26 @@ struct ContentView: View {
     @Query var tenantsFromDataStore: [Tenant]
     @Query var foodsFromDataStore: [Food]
     @State private var showSheet = true
-    @State private var isDataLoaded = false
     @State var showOnboarding: Bool
     @State private var showPreferences = false
     @StateObject private var locationManager = LocationManager()
     var deepLinkTenantID: UUID?
+    @State private var navigateToTenantViewFromDeepLink = false
+    @State private var hasIndexedSpotlightThisSession = false
+    var onDeepLinkTenantViewDismiss: (() -> Void)?
     
-    init(showOnboarding: Bool = true, deepLinkTenantID: UUID? = nil) {
+    // Add states to control MapView modals
+    @State private var showSearchModal = false
+    @State private var showDetail = false
+    @State private var showTutorial = false
+    @State private var showEasterEgg = false
+    
+    @State private var deepLinkedTenant: Tenant?
+    
+    init(showOnboarding: Bool = true, deepLinkTenantID: UUID? = nil, onDeepLinkTenantViewDismiss: (() -> Void)? = nil) {
         self._showOnboarding = State(initialValue: showOnboarding)
         self.deepLinkTenantID = deepLinkTenantID
+        self.onDeepLinkTenantViewDismiss = onDeepLinkTenantViewDismiss
     }
     
     private func insertInitialData() async {
@@ -456,63 +467,102 @@ struct ContentView: View {
         }
     }
 
-    var body: some View {
+    // Extracted main content view logic
+    @ViewBuilder
+    private var mainContent: some View {
         let shouldLoadData = canteensFromDataStore.isEmpty && tenantsFromDataStore.isEmpty && foodsFromDataStore.isEmpty
-        
-        if showOnboarding {
-            OnboardingView(showOnboarding: $showOnboarding, showPreferences: $showPreferences)
+
+        Group {
+            if showOnboarding {
+                OnboardingView(showOnboarding: $showOnboarding, showPreferences: $showPreferences)
+                    .environmentObject(locationManager)
+            } else {
+                MapView(
+                    displayTenants: tenantsFromDataStore,
+                    displayCanteens: canteensFromDataStore,
+                    allTenantsForSearch: tenantsFromDataStore,
+                    allFoodsForSearch: foodsFromDataStore,
+                    showTutorial: $showTutorial,
+                    deepLinkTenantID: deepLinkTenantID,
+                    modelContext: context,
+                    showSearchModal: $showSearchModal,
+                    showDetail: $showDetail,
+                    showEasterEgg: $showEasterEgg
+                )
                 .environmentObject(locationManager)
-                .task {
-                    if shouldLoadData && !isDataLoaded {
-                        await insertInitialData()
-                        isDataLoaded = true
-                    }
-                }
-        } else {
-            MapView(
-                displayTenants: tenantsFromDataStore,
-                displayCanteens: canteensFromDataStore,
-                allTenantsForSearch: tenantsFromDataStore,
-                allFoodsForSearch: foodsFromDataStore,
-                showTutorial: !UserDefaults.standard.bool(forKey: "hasSeenMapTutorial"),
-                deepLinkTenantID: deepLinkTenantID,
-                modelContext: context
-            )
-            .environmentObject(locationManager)
-            .task {
-                if shouldLoadData && !isDataLoaded {
-                    await insertInitialData()
-                    isDataLoaded = true
-                }
-                locationManager.requestLocationPermission()
-                
-                // No specific deep link logic needed here in ContentView for now
-                // MapView can handle its display based on deepLinkTenantID if needed
-            }
-            .onAppear {
-                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
             }
         }
     }
+
+    var body: some View {
+        // Call the extracted mainContent and apply modifiers here
+        mainContent
+            .task {
+                let needsInitialDataLoad = canteensFromDataStore.isEmpty && tenantsFromDataStore.isEmpty && foodsFromDataStore.isEmpty
+                if needsInitialDataLoad {
+                    await insertInitialData()
+                }
+            }
+            .onChange(of: tenantsFromDataStore) { _, newTenants in
+                if !newTenants.isEmpty && !hasIndexedSpotlightThisSession {
+                    indexTenantsForSpotlight()
+                    hasIndexedSpotlightThisSession = true
+                }
+                if deepLinkTenantID != nil && !newTenants.isEmpty && !navigateToTenantViewFromDeepLink {
+                     navigateToTenantViewFromDeepLink = true
+                }
+            }
+            .onChange(of: deepLinkTenantID) { oldValue, newValue in
+                print("deepLinkTenantID changed from \(String(describing: oldValue)) to \(String(describing: newValue))")
+                if let newID = newValue {
+                    print("Deep link received for tenant ID: \(newID)")
+                    // Tutup semua sheet/modal lain sebelum membuka TenantView
+                    showPreferences = false
+                    showSearchModal = false
+                    showDetail = false
+                    showTutorial = false
+                    showEasterEgg = false
+                    
+                    // Tambahkan delay untuk memastikan data siap
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if !tenantsFromDataStore.isEmpty {
+                            print("Data ready, navigating to tenant view")
+                            navigateToTenantViewFromDeepLink = true
+                        } else {
+                            print("Data not ready yet, waiting...")
+                        }
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $navigateToTenantViewFromDeepLink) {
+                if let tenantID = deepLinkTenantID {
+                    if let tenant = tenantsFromDataStore.first(where: { $0.id == tenantID }) {
+                        TenantView(tenant: tenant, foods: tenant.foods, selectedCategories: .constant([]))
+                            .onDisappear {
+                                print("TenantView dismissed")
+                                navigateToTenantViewFromDeepLink = false
+                                showSearchModal = true
+                                onDeepLinkTenantViewDismiss?()
+                                deepLinkedTenant = nil
+                            }
+                    } else {
+                        Text("Tenant not found from deep link")
+                            .onAppear {
+                                print("Tenant not found in data store")
+                            }
+                    }
+                }
+            }
+    }
     
-    // Index tenants for Spotlight search
     private func indexTenantsForSpotlight() {
         var searchableItems: [CSSearchableItem] = []
-        
         for tenant in tenantsFromDataStore {
-            let attributeSet = CSSearchableItemAttributeSet(contentType: .text)
+            let attributeSet = CSSearchableItemAttributeSet(contentType: .item)
             attributeSet.title = tenant.name
-            attributeSet.contentDescription = "Food tenant at \(tenant.canteen?.name ?? "unknown location")"
-            
-            if let canteen = tenant.canteen {
-                attributeSet.keywords = [canteen.name, tenant.name, "food", "restaurant", "canteen"]
-            }
-            
-            // If tenant has image, we could add it here
-            // if let image = UIImage(named: tenant.image) {
-            //     attributeSet.thumbnailData = image.jpegData(compressionQuality: 0.7)
-            // }
-            
+            attributeSet.contentDescription = "\(tenant.canteen?.name ?? "") - \(tenant.operationalHours)"
+            attributeSet.keywords = [tenant.name, tenant.canteen?.name ?? "", "tenant", "food", "canteen"]
+
             let searchableItem = CSSearchableItem(
                 uniqueIdentifier: tenant.id.uuidString,
                 domainIdentifier: "com.gopeat.tenant",
@@ -520,12 +570,11 @@ struct ContentView: View {
             )
             searchableItems.append(searchableItem)
         }
-        
         CSSearchableIndex.default().indexSearchableItems(searchableItems) { error in
             if let error = error {
-                print("Indexing error: \(error.localizedDescription)")
+                print("Error indexing tenants: \(error.localizedDescription)")
             } else {
-                print("Tenant search indexing successful")
+                print("Tenants indexed successfully for Spotlight.")
             }
         }
     }
@@ -552,5 +601,10 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(
+        showOnboarding: true,
+        deepLinkTenantID: nil,
+        onDeepLinkTenantViewDismiss: nil
+    )
+    .modelContainer(for: [Canteen.self, Tenant.self, Food.self])
 }
